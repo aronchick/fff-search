@@ -11,6 +11,11 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshots/search-file-contents.png" width="49%" alt="Search File Contents with the preview panel">
+  <img src="docs/screenshots/search-files.png" width="49%" alt="Search Files finding a file despite typos">
+</p>
+
 ## Why BetterSearch
 
 Vicinae's built-in file search matches file **names**. BetterSearch adds:
