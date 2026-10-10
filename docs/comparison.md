@@ -8,12 +8,12 @@ This page makes the case for BetterSearch. It also says where another tool is th
 | --- | --- | --- | --- | --- |
 | File name search | Yes | Yes | Yes | Yes |
 | Search inside files | Yes, text files | No | Yes, with ripgrep | Yes, including PDFs and office documents |
-| Typo tolerance | Yes | Not documented (see below) | No | No (word stemming only) |
-| Ranking | Match quality, recent changes, query history | Not documented | None (walk order) | Relevance |
-| Latency per keystroke | ~3 ms names, ~5 ms contents | Not measured (see below) | ~15 ms names, ~180 ms contents | Index lookup |
+| Typo tolerance | Yes | Yes | No | No (word stemming only) |
+| Ranking | Match quality, recent changes, query history | Match quality | None (walk order) | Relevance |
+| Latency per keystroke | ~3 ms names, ~5 ms contents | Not measured in the app (see below) | ~15 ms names, ~180 ms contents | Index lookup |
 | Live updates | File watcher | Incremental indexer (Linux) | Rescans on every query | Periodic reindex |
 | Git status in results | Yes | No | No | No |
-| Respects `.gitignore` | Yes | Not documented | Yes | No (own skip lists) |
+| Indexes hidden and gitignored files | No, outside folders you add | Yes | Optional | Configurable |
 | Open editor at matching line | Yes | No | Depends on the extension | No |
 | Platforms | Linux, macOS, Windows | Linux (own indexer), macOS (Spotlight) | Any with the binaries installed | Linux, macOS, Windows |
 
@@ -23,14 +23,14 @@ Measured on an AMD Ryzen 7 5700X with a SATA SSD, CachyOS, searching a home fold
 
 ### File name search
 
-| Query | BetterSearch | Top BetterSearch result | `fd -i -p` |
-| --- | --- | --- | --- |
-| `search contents` | 3.1 ms | `…/src/search-file-contents.tsx` | 13.8 ms, 1 unranked hit |
-| `serch contnts` (2 typos) | 2.9 ms | `…/src/search-file-contents.tsx` | 13.5 ms, 0 hits |
-| `daemon mjs` | 2.4 ms | `…/scripts/install-daemon.mjs` | 14.7 ms, 2 hits |
-| `vicnae fff extnsion` (2 typos) | 2.6 ms | `vicinae-fff-extension/` | 14.4 ms, 0 hits |
+| Query | BetterSearch | Top BetterSearch result | Vicinae built-in | `fd -i -p` |
+| --- | --- | --- | --- | --- |
+| `search contents` | 3.1 ms | `…/src/search-file-contents.tsx` | 4 hits, the same file second | 13.8 ms, 1 unranked hit |
+| `serch contnts` (2 typos) | 2.9 ms | `…/src/search-file-contents.tsx` | 4 hits, the same file second | 13.5 ms, 0 hits |
+| `daemon mjs` | 2.4 ms | `…/scripts/install-daemon.mjs` | 3 hits | 14.7 ms, 2 hits |
+| `vicnae fff extnsion` (2 typos) | 2.6 ms | `vicinae-fff-extension/` | 42 hits, the same folder first | 14.4 ms, 0 hits |
 
-For `fd`, the query words were joined into the regex `word1.*word2`.
+For `fd`, the query words were joined into the regex `word1.*word2`. The built-in results come from `vicinae fs query`. In the two `search contents` queries, the built-in's first hit was the copy of the file inside the installed extension, a folder BetterSearch does not index because it is hidden.
 
 ### Content search
 
@@ -44,17 +44,20 @@ ripgrep is the fastest tool for a single search. It loses here because a launche
 
 ### What was not measured
 
-Vicinae's built-in indexer was not running on the test machine (it had been killed and was not restarted), so its latency is not listed. Its documentation describes filename matching only, a full scan of the home folder on first start that "is expected to use a lot of CPU", and incremental updates afterwards.
+The built-in search's latency inside the launcher. `vicinae fs query` took about 15 ms per query, but that includes starting the CLI process, which the launcher does not do, so the number is not comparable.
 
 ## The alternatives in detail
 
 ### Vicinae's built-in file search
 
-**Use it when** you want zero setup and only search by file name.
+**Use it when** you only search by file name, or need to find hidden files and config such as `~/.zshrc` without extra setup.
 
-- It indexes far more than your own files. On the test machine its status bar reported over 300,000 indexed files. `fd --no-ignore` finds 158,885 files when hidden folders are excluded, so the built-in index must include hidden folders such as caches and app data. fff indexes 5,300 files there, because it skips hidden, ignored and dependency folders. In the built-in index, results from caches compete with your own files.
-- Its documentation describes matching words in any order and by prefix ("fol exa" and "ex fold" find "example folder"). It does not describe handling misspellings.
-- It cannot search inside files.
+It is a good file name search. It handled every typo test above and ranks results sensibly. The differences:
+
+- **It cannot search inside files.** This is the main reason to use BetterSearch.
+- **It indexes everything.** It finds hidden files (`~/.zshrc`) and gitignored files that BetterSearch skips. That is useful for config files, but on the test machine it reported over 300,000 indexed files against 5,300 for BetterSearch, so app data and caches compete with your own files.
+- **No git status, no editor line jumps, no learning from what you open.**
+- **It can appear in the main search bar**, which extensions cannot (set `search_files_in_root`).
 - On macOS it uses Spotlight.
 
 BetterSearch does not replace it. Extensions cannot change Vicinae's built-in search or add results to the main search bar. Both can be installed side by side.

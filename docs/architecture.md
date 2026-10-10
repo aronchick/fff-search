@@ -99,6 +99,6 @@ Each folder in **Indexed Directories** gets its own fff instance and its own his
 `scripts/install-daemon.mjs` runs as the package's `postinstall` step:
 
 - **Default:** `npm ci` in `assets/daemon/`, so npm installs only the binaries for the current machine.
-- **`--all-platforms`** (used by `npm run build:universal`): also downloads the binaries for the other seven platforms with `npm pack`, checks each against the integrity hash in `assets/daemon/package-lock.json`, and unpacks them. The result is one bundle that runs anywhere fff is supported.
+- **All platforms** (with `--all-platforms` as used by `npm run build:universal`, when `CI=true`, or with `BETTERSEARCH_ALL_PLATFORMS=1`): also downloads the binaries for the other seven platforms with `npm pack`, checks each against the integrity hash in `assets/daemon/package-lock.json`, and unpacks them. The result is one bundle that runs anywhere fff is supported.
 
 `vici build` copies `assets/` unchanged, so the daemon and its `node_modules` ship with the extension.

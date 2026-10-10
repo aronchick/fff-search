@@ -13,13 +13,14 @@
 
 ## Why BetterSearch
 
-Vicinae's built-in file search matches file **names** only. BetterSearch adds:
+Vicinae's built-in file search matches file **names**. BetterSearch adds:
 
 - **Search inside files.** Plain text, regex or fuzzy matching, with the surrounding lines previewed and one key to open your editor at the matching line.
-- **Typo tolerance.** `serch contnts` finds `search-file-contents.tsx`. `vicnae fff extnsion` finds `vicinae-fff-extension/`.
-- **Ranking that learns.** Recently modified files rank first, and files you open for a query rank higher the next time you type that query.
+- **Speed for content search.** About 5 ms per search on a warm index. A ripgrep search of the same home folder takes about 180 ms, and a launcher repeats it on every keystroke.
+- **Focus on your own files.** `.gitignore` rules, hidden folders and dependency folders such as `node_modules` are skipped, so caches and app data do not crowd the results.
 - **Git awareness.** Modified, untracked and staged files are tagged in the results.
-- **Speed.** File search answers in about 3 ms and content search in about 5 ms on a warm index. A ripgrep search of the same home folder takes about 180 ms.
+- **Ranking that learns.** Recently modified files rank first, and files you open for a query rank higher the next time you type that query.
+- **Typo tolerance in both commands.** `serch contnts` finds `search-file-contents.tsx`, and content search has a fuzzy mode for misspelled text.
 
 See [docs/comparison.md](docs/comparison.md) for measurements and an honest comparison with the alternatives, including what BetterSearch does not do.
 
@@ -87,7 +88,7 @@ npm run build
 
 ### One bundle for every platform
 
-`npm run build:universal` includes the native library for all eight supported platforms in a single build of about 75 MB. Use it when the build is made on one machine and run on others, for example a shared Nix or dotfiles setup. Every downloaded package is checked against the hashes in `assets/daemon/package-lock.json`.
+`npm run build:universal` includes the native library for all eight supported platforms in a single build of about 75 MB. Use it when the build is made on one machine and run on others, for example a shared Nix or dotfiles setup. Builds in CI (`CI=true`, as in the Vicinae store's pipeline) do this automatically, and `BETTERSEARCH_ALL_PLATFORMS=1` forces it. Every downloaded package is checked against the hashes in `assets/daemon/package-lock.json`.
 
 ## Configuration
 

@@ -2,9 +2,10 @@
 // so the built extension is self-contained (`vici build` copies assets/ as is).
 //
 // By default npm installs only the native fff and ffi-rs binaries for the
-// machine running the install. With --all-platforms, the binaries for every
-// platform Vicinae supports are added too, producing one bundle that runs on
-// Linux (x64/arm64, glibc/musl), macOS (x64/arm64) and Windows (x64/arm64).
+// machine running the install. With --all-platforms, in CI, or with
+// BETTERSEARCH_ALL_PLATFORMS=1, the binaries for every platform Vicinae
+// supports are added too, producing one bundle that runs on Linux (x64/arm64,
+// glibc/musl), macOS (x64/arm64) and Windows (x64/arm64).
 
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -82,5 +83,12 @@ function installAllPlatforms() {
 	}
 }
 
+// A CI build, such as the Vicinae store's, produces one bundle that every user
+// downloads, so it must contain every platform's binaries.
+const allPlatforms =
+	process.argv.includes("--all-platforms") ||
+	process.env.CI === "true" ||
+	process.env.BETTERSEARCH_ALL_PLATFORMS === "1";
+
 installForThisMachine();
-if (process.argv.includes("--all-platforms")) installAllPlatforms();
+if (allPlatforms) installAllPlatforms();
