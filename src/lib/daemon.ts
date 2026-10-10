@@ -202,9 +202,11 @@ export function ensureDaemon(): Promise<void> {
 			roots: prefs.roots,
 			followSymlinks: prefs.followSymlinks,
 			dataDir: environment.supportPath,
-			// Commands run in worker threads, so this is the Vicinae extension
-			// manager's pid. The daemon exits when that process does.
-			owner: process.pid,
+			// Commands run in worker threads, so pid is the Vicinae extension
+			// manager and ppid the Vicinae server. The daemon exits when either
+			// does. Both are needed: the manager can linger after the server is
+			// stopped, for example by a systemd unit with KillMode=process.
+			owners: [process.pid, process.ppid].filter((pid) => pid > 1),
 		});
 	})().catch((e) => {
 		ready = null;

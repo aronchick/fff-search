@@ -44,7 +44,7 @@ Each request is one line of JSON, and each response is one line of JSON:
 | Method | Params | Returns |
 | --- | --- | --- |
 | `ping`, `status` | none | Build hash, script path, pid, platform, and per-folder scan state |
-| `configure` | `roots`, `followSymlinks`, `dataDir`, `owner` | Status. Rebuilds the indexes only if the settings changed. |
+| `configure` | `roots`, `followSymlinks`, `dataDir`, `owners` | Status. Rebuilds the indexes only if the settings changed. |
 | `search` | `query`, `page`, `pageSize` | Files and folders, merged across indexed folders by score |
 | `grep` | `query`, `mode` (`plain`, `regex`, `fuzzy`), `cursor`, `pageSize` | Matches with context lines, plus a cursor for the next page |
 | `track` | `query`, `path` | Records that `path` was opened for `query`, for ranking |
@@ -58,11 +58,11 @@ Errors come back as `{"id": 1, "ok": false, "error": "message"}`.
 1. A command calls `ensureDaemon()` in `src/lib/daemon.ts`, which pings the socket.
 2. If nothing answers, it starts the daemon detached, with its output appended to `daemon.log`, and waits up to 8 seconds for it to answer.
 3. If the daemon that answers came from a different install path or a different build (compared by a SHA-1 hash of `daemon.mjs`), it is shut down and replaced. A rebuilt extension never talks to stale code.
-4. The command sends `configure` with the current preferences and its own process ID. Because commands run in worker threads, that ID is the Vicinae extension manager's.
+4. The command sends `configure` with the current preferences and two process IDs. Because commands run in worker threads, its own process ID is the Vicinae extension manager's, and its parent's is the Vicinae server's.
 
 The daemon exits when:
 
-- the Vicinae extension manager process that configured it is gone (checked every 10 seconds),
+- the Vicinae server or extension manager that configured it is gone (checked every 10 seconds). Both are watched because the extension manager can outlive the server, for example when a systemd unit with `KillMode=process` stops Vicinae,
 - its script is deleted, because the extension was removed (checked every 10 seconds),
 - it receives `shutdown`, SIGINT or SIGTERM.
 

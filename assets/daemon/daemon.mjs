@@ -37,9 +37,9 @@ try {
 let roots = [];
 let configKey = "";
 let lastError = null;
-// The Vicinae extension manager process that last configured us. When it
-// exits, so do we, so the index never outlives Vicinae.
-let ownerPid = null;
+// The Vicinae server and extension manager processes that last configured us.
+// When either exits, so do we, so the index never outlives Vicinae.
+let ownerPids = [];
 
 function destroyAll() {
 	for (const { finder } of roots) {
@@ -52,9 +52,9 @@ function destroyAll() {
 	roots = [];
 }
 
-function configure({ roots: wanted, followSymlinks = false, dataDir, owner }) {
+function configure({ roots: wanted, followSymlinks = false, dataDir, owners = [] }) {
 	if (loadError) throw new Error(loadError);
-	if (owner) ownerPid = owner;
+	if (owners.length) ownerPids = owners;
 
 	const key = JSON.stringify({ wanted, followSymlinks, dataDir });
 	if (key === configKey) return status();
@@ -355,7 +355,7 @@ function isAlive(pid) {
 
 // Exit once Vicinae stops or the extension is removed.
 setInterval(() => {
-	if (ownerPid && !isAlive(ownerPid)) {
+	if (ownerPids.some((pid) => !isAlive(pid))) {
 		log("vicinae exited, shutting down");
 		shutdown();
 	} else if (!existsSync(SCRIPT_PATH)) {
