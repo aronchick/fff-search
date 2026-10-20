@@ -68,6 +68,15 @@
 			"required": false
 		},
 		{
+			"name": "ignoreFile",
+			"title": "Ignore File",
+			"description": "Optional file of gitignore-style patterns, matched against paths inside each indexed directory. Matching files and folders are hidden from results, for example *.py or node_modules/.",
+			"type": "textfield",
+			"placeholder": "~/.config/fff-search/ignore",
+			"default": "",
+			"required": false
+		},
+		{
 			"name": "editorCommand",
 			"title": "Editor Command",
 			"description": "Command used to open a file at a line. Placeholders: {file}, {line}, {column}. Leave empty to use the default application.",

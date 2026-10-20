@@ -201,6 +201,7 @@ export function ensureDaemon(): Promise<void> {
 		await request<DaemonStatus>("configure", {
 			roots: prefs.roots,
 			followSymlinks: prefs.followSymlinks,
+			ignoreFile: prefs.ignoreFile,
 			dataDir: environment.supportPath,
 			// Commands run in worker threads, so pid is the Vicinae extension
 			// manager and ppid the Vicinae server. The daemon exits when either

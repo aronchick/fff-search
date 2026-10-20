@@ -4,6 +4,7 @@ import { getPreferenceValues } from "@vicinae/api";
 
 export type Prefs = {
 	roots: string[];
+	ignoreFile: string;
 	editorCommand: string;
 	editorInTerminal: boolean;
 	showPreview: boolean;
@@ -32,6 +33,9 @@ export function loadPreferences(): Prefs {
 
 	return {
 		roots: [...new Set(roots)],
+		ignoreFile: raw.ignoreFile?.trim()
+			? resolve(expandHome(raw.ignoreFile.trim()))
+			: "",
 		editorCommand: (raw.editorCommand ?? "").trim(),
 		editorInTerminal: Boolean(raw.editorInTerminal),
 		showPreview: raw.showPreview ?? true,

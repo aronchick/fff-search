@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import net from "node:net";
 import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import ignore from "ignore";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 // Lets clients detect a daemon left running from an older build.
@@ -40,6 +41,29 @@ let lastError = null;
 // The Vicinae server and extension manager processes that last configured us.
 // When either exits, so do we, so the index never outlives Vicinae.
 let ownerPids = [];
+// fff has no exclude option, so the user's ignore file (gitignore syntax,
+// matched against root-relative paths) filters results here instead.
+let excludes = null;
+let ignoreError = null;
+
+// Re-read on every configure, so edits apply the next time a command opens
+// without rebuilding the index.
+function loadIgnoreFile(path) {
+	excludes = null;
+	ignoreError = null;
+	if (!path) return;
+	try {
+		excludes = ignore().add(readFileSync(path, "utf8"));
+	} catch (e) {
+		ignoreError = `Ignore file ${path}: ${e instanceof Error ? e.message : String(e)}`;
+		log(ignoreError);
+	}
+}
+
+const isExcluded = (relativePath, isDirectory) =>
+	excludes !== null &&
+	relativePath !== "" &&
+	excludes.ignores(isDirectory ? `${relativePath}/` : relativePath);
 
 function destroyAll() {
 	for (const { finder } of roots) {
@@ -52,9 +76,16 @@ function destroyAll() {
 	roots = [];
 }
 
-function configure({ roots: wanted, followSymlinks = false, dataDir, owners = [] }) {
+function configure({
+	roots: wanted,
+	followSymlinks = false,
+	ignoreFile = "",
+	dataDir,
+	owners = [],
+}) {
 	if (loadError) throw new Error(loadError);
 	if (owners.length) ownerPids = owners;
+	loadIgnoreFile(ignoreFile);
 
 	const key = JSON.stringify({ wanted, followSymlinks, dataDir });
 	if (key === configKey) return status();
@@ -107,7 +138,7 @@ function status() {
 		script: SCRIPT_PATH,
 		pid: process.pid,
 		platform: `${process.platform}-${process.arch}`,
-		error: loadError ?? lastError,
+		error: loadError ?? lastError ?? ignoreError,
 		roots: roots.map(({ root, finder }) => {
 			const progress = finder.getScanProgress();
 			return {
@@ -147,6 +178,9 @@ function toEntry(root, mixed, score) {
 	};
 }
 
+// Upper bound on one root's widened fetch when an ignore file hides matches.
+const MAX_FETCH = 4096;
+
 function search({ query = "", page = 0, pageSize = 50 }) {
 	requireRoots();
 	const want = pageSize * (page + 1);
@@ -154,16 +188,30 @@ function search({ query = "", page = 0, pageSize = 50 }) {
 	let totalMatched = 0;
 	let totalFiles = 0;
 	let location;
+	let truncated = false;
 
 	for (const { root, finder } of roots) {
-		const r = finder.mixedSearch(query, { pageSize: want });
-		if (!r.ok) throw new Error(r.error);
-		totalMatched += r.value.totalMatched;
-		totalFiles += r.value.totalFiles;
-		location ??= r.value.location;
-		r.value.items.forEach((item, i) =>
-			items.push(toEntry(root, item, r.value.scores[i])),
-		);
+		// Excluded matches leave gaps, so widen the fetch until the page fills
+		// or fff has nothing more to give.
+		for (let fetch = want; ; fetch *= 4) {
+			const r = finder.mixedSearch(query, { pageSize: fetch });
+			if (!r.ok) throw new Error(r.error);
+			const kept = [];
+			r.value.items.forEach((item, i) => {
+				const entry = toEntry(root, item, r.value.scores[i]);
+				if (!isExcluded(entry.relativePath, entry.kind === "directory"))
+					kept.push(entry);
+			});
+			const exhausted = r.value.totalMatched <= fetch;
+			if (kept.length < want && !exhausted && fetch < MAX_FETCH) continue;
+
+			totalMatched += r.value.totalMatched;
+			totalFiles += r.value.totalFiles;
+			location ??= r.value.location;
+			truncated ||= !exhausted;
+			items.push(...kept);
+			break;
+		}
 	}
 
 	// Single root: keep fff's ordering. Several roots: interleave by score and
@@ -174,11 +222,12 @@ function search({ query = "", page = 0, pageSize = 50 }) {
 			.sort((a, b) => b.score - a.score)
 			.filter((item) => !seen.has(item.path) && seen.add(item.path));
 	}
+	const hasMore = truncated || items.length > want;
 	items = items.slice(page * pageSize, want);
 
 	return {
 		items,
-		hasMore: totalMatched > want,
+		hasMore,
 		totalMatched,
 		totalFiles,
 		location,
@@ -222,6 +271,7 @@ function grep({
 		filesSearched += r.value.totalFilesSearched;
 
 		for (const m of r.value.items) {
+			if (isExcluded(m.relativePath, false)) continue;
 			items.push({
 				path: join(root, m.relativePath),
 				relativePath: m.relativePath,

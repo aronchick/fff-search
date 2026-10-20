@@ -44,7 +44,7 @@ Each request is one line of JSON, and each response is one line of JSON:
 | Method | Params | Returns |
 | --- | --- | --- |
 | `ping`, `status` | none | Build hash, script path, pid, platform, and per-folder scan state |
-| `configure` | `roots`, `followSymlinks`, `dataDir`, `owners` | Status. Rebuilds the indexes only if the settings changed. |
+| `configure` | `roots`, `followSymlinks`, `ignoreFile`, `dataDir`, `owners` | Status. Rebuilds the indexes only if `roots`, `followSymlinks` or `dataDir` changed; the ignore file is re-read every time. |
 | `search` | `query`, `page`, `pageSize` | Files and folders, merged across indexed folders by score |
 | `grep` | `query`, `mode` (`plain`, `regex`, `fuzzy`), `cursor`, `pageSize` | Matches with context lines, plus a cursor for the next page |
 | `track` | `query`, `path` | Records that `path` was opened for `query`, for ranking |
@@ -80,6 +80,7 @@ Each folder in **Indexed Directories** gets its own fff instance and its own his
 - If fff has no native library for the platform, the daemon still starts and answers every request with an error naming the platform, which the commands show in their empty state.
 - If a folder cannot be indexed, the others still work, and the error appears in **Manage File Index**.
 - If no folder can be indexed, searches return that error instead of empty results.
+- If the ignore file cannot be read, results are shown unfiltered and the error appears in **Manage File Index**.
 
 ## The commands
 

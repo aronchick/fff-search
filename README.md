@@ -102,10 +102,27 @@ Open Vicinae's settings, then **Extensions → fff Search**.
 | Preference | Default | Notes |
 | --- | --- | --- |
 | Indexed Directories | `~` | Comma-separated, for example `~, /mnt/data/projects`. Each folder gets its own index. |
+| Ignore File | empty | Path to a file of gitignore-style patterns that hides matching files and folders from results. See below. |
 | Editor Command | empty | Opens files at a line. Placeholders: `{file}`, `{line}`, `{column}`. When empty, files open in their default application. |
 | Run editor command in a terminal | off | For terminal editors such as Neovim or Helix. |
 | Show preview panel | on | The starting state. `Ctrl+Shift+P` toggles it. |
 | Follow symlinked directories | off | |
+
+### Hiding files from results
+
+fff already skips `.gitignore`d paths, but an indexed folder full of source code can still bury the documents you are looking for. Point **Ignore File** at a file of [gitignore](https://git-scm.com/docs/gitignore#_pattern_format) patterns to hide matches from both Search Files and Search File Contents:
+
+```gitignore
+# Hide source and build output, keep documents
+*.py
+*.ts
+*.json
+node_modules/
+# Unignore with !
+!important.json
+```
+
+Patterns are matched against each path relative to its indexed directory, so `/notes` means `notes` at the top of every indexed folder. The file is re-read whenever a command opens; the index itself is unchanged, so edits apply without a rescan.
 
 Editor command examples:
 

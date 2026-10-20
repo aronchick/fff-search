@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@ff-labs/fff-node": "^0.11.0"
+		"@ff-labs/fff-node": "^0.11.0",
+		"ignore": "^7.0.12"
 	}
 }
